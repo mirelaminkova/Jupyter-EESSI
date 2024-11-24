@@ -1,0 +1,26 @@
+- name: Access Jupyter Notebook
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Install and configure the EESSI client
+      import_playbook: plugin-EESSI-client.yml
+
+    - name: Load the EESSI environment
+      shell: |
+        source /cvmfs/pilot.eessi-hpc.org/2020.09/init/bash
+        echo "EESSI environment loaded."
+
+    - name: Start Jupyter Notebook
+      shell: |
+        source /cvmfs/pilot.eessi-hpc.org/2020.09/init/bash
+        nohup jupyter notebook --no-browser --ip=0.0.0.0 &
+      args:
+        executable: /bin/bash
+
+    - name: Verify Jupyter is running
+      shell: pgrep -f jupyter
+      register: jupyter_running
+      failed_when: jupyter_running.rc != 0
+      changed_when: jupyter_running.rc == 0
