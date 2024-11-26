@@ -6,7 +6,7 @@
 
   tasks:
     - name: Install and configure the EESSI client
-      include_tasks: plugin-EESSI-client.yml
+      include_tasks: /plugin-EESSI/plugin-EESSI-client.yml
 
     - name: Start Jupyter Notebook
       shell: |
