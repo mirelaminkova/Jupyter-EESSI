@@ -8,13 +8,19 @@
       import_playbook: plugin-EESSI-client.yml
 
     - name: Load the EESSI environment
-      shell: |
-        source /cvmfs/pilot.eessi-hpc.org/2020.09/init/bash
-        echo "EESSI environment loaded."
+      shell: source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
+      args:
+        executable: /bin/bash
+
+    - name: Load Jupyter Notebook module
+      shell: module load JupyterNotebook/7.0.2-GCCcore-12.3.0
+      args:
+        executable: /bin/bash
 
     - name: Start Jupyter Notebook
       shell: |
-        source /cvmfs/pilot.eessi-hpc.org/2020.09/init/bash
+        source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
+        module load JupyterNotebook/7.0.2-GCCcore-12.3.0
         nohup jupyter notebook --no-browser --ip=0.0.0.0 &
       args:
         executable: /bin/bash
@@ -24,3 +30,4 @@
       register: jupyter_running
       failed_when: jupyter_running.rc != 0
       changed_when: jupyter_running.rc == 0
+
