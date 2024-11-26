@@ -53,4 +53,4 @@
 
         - name: Probe Stratum 1 servers by geo location to trigger reordering
           shell: cvmfs_talk -i pilot.eessi-hpc.org host probe geo
-- import_playbook: jupyter_notebook.yml
+
