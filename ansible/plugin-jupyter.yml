@@ -1,3 +1,4 @@
+---
 - name: Access Jupyter Notebook
   hosts: localhost
   gather_facts: true
@@ -5,12 +6,7 @@
 
   tasks:
     - name: Install and configure the EESSI client
-      import_playbook: plugin-EESSI-client.yml
-
-    - name: Load the EESSI environment
-      shell: source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
-      args:
-        executable: /bin/bash
+      include_tasks: plugin-EESSI-client.yml
 
     - name: Start Jupyter Notebook
       shell: |
