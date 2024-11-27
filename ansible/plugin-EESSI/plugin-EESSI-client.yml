@@ -53,11 +53,19 @@
 
         - name: Probe Stratum 1 servers by geo location to trigger reordering
           shell: cvmfs_talk -i pilot.eessi-hpc.org host probe geo
-    - name: Add .bashrc setup environment for EESSI 
-      lineinfile: 
+          
+    - name: EESSI environment setup to .bashrc
+      lineinfile:
         path: ~/.bashrc
         line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
         state: present
+
+    - name: Add EESSI environment setup to /etc/profile
+      lineinfile:
+        path: /etc/profile
+        line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
+        state: present
+      become: true
      # Jupyter set
     - name: Start Jupyter Notebook
       shell: |
