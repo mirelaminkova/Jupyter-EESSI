@@ -55,13 +55,28 @@
           shell: cvmfs_talk -i pilot.eessi-hpc.org host probe geo
           
 
-    - name: Ensure .bashrc contains EESSI environment setup
-      lineinfile:
-        path: ~/.bashrc
-        line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
-        state: present
+- name: Ensure .bashrc contains EESSI environment setup
+  lineinfile:
+    path: ~/.bashrc
+    line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
+    state: present
 
+- name: Apply .bashrc changes
+  shell: source ~/.bashrc
+  args:
+    executable: /bin/bash
 
+- name: Verify modules are available
+  shell: |
+    source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
+    module avail
+  args:
+    executable: /bin/bash
+  register: module_output
+
+- debug:
+    var: module_output.stdout
+    
     - name: Start Jupyter Notebook
       shell: |
         source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
