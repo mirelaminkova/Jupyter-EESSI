@@ -54,3 +54,17 @@
         - name: Probe Stratum 1 servers by geo location to trigger reordering
           shell: cvmfs_talk -i pilot.eessi-hpc.org host probe geo
 
+    # Add Jupyter setup tasks here
+    - name: Start Jupyter Notebook
+      shell: |
+        source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
+        module load JupyterNotebook/7.0.2-GCCcore-12.3.0
+        nohup jupyter notebook --no-browser --ip=0.0.0.0 &
+      args:
+        executable: /bin/bash
+
+    - name: Verify Jupyter is running
+      shell: pgrep -f jupyter
+      register: jupyter_running
+      failed_when: jupyter_running.rc != 0
+      changed_when: jupyter_running.rc == 0
