@@ -2,7 +2,7 @@
 - name: Configure node for access to the EESSI stack
   hosts: localhost
   gather_facts: true
-
+  become: true 
   tasks:
     - name: Install prerequisites
       apt:
@@ -54,29 +54,28 @@
         - name: Probe Stratum 1 servers by geo location to trigger reordering
           shell: cvmfs_talk -i pilot.eessi-hpc.org host probe geo
           
-    - name: EESSI environment setup to .bashrc
+
+    - name: Ensure .bashrc contains EESSI environment setup
       lineinfile:
         path: ~/.bashrc
         line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
         state: present
 
-    - name: Add EESSI environment setup to /etc/profile
-      lineinfile:
-        path: /etc/profile
-        line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
-        state: present
-      become: true
-     # Jupyter set
+
     - name: Start Jupyter Notebook
       shell: |
         source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
+        module purge   # Clear all other loaded modules
         module load JupyterNotebook/7.0.2-GCCcore-12.3.0
         nohup jupyter notebook --no-browser --ip=0.0.0.0 &
       args:
         executable: /bin/bash
 
+
     - name: Verify Jupyter is running
-      shell: pgrep -f jupyter
+      shell: |
+        source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
+        pgrep -f jupyter
       register: jupyter_running
       failed_when: jupyter_running.rc != 0
       changed_when: jupyter_running.rc == 0
