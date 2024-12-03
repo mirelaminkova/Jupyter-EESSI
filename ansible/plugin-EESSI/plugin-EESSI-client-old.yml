@@ -1,0 +1,82 @@
+---
+- name: Configure node for access to the EESSI stack
+  hosts: localhost
+  gather_facts: true
+  become: true 
+  tasks:
+    - name: Install prerequisites
+      apt:
+        name:
+          - sudo
+          - wget
+        state: present
+
+    - name: Download EESSI installation script
+      get_url:
+        url: https://raw.githubusercontent.com/EESSI/eessi-demo/23da78bd7cc56332cceb9567bf67be637af91946/scripts/install_cvmfs_eessi.sh
+        dest: /tmp/install_cvmfs_eessi.sh
+        mode: '0755'
+
+    - name: Execute the installation script
+      shell: /tmp/install_cvmfs_eessi.sh
+
+    - name: Verify cvmfs_talk command
+      shell: "command -v cvmfs_talk"
+      register: cvmfs_talk_output
+      ignore_errors: true
+
+    - name: Fail if cvmfs_talk command not found
+      fail:
+        msg: "'cvmfs_talk' command is not available. EESSI client installation failed."
+      when: cvmfs_talk_output.rc != 0
+
+    - name: Add private Stratum 1 to list of Stratum 1s
+      when: src_stratum1_host is defined
+      block:
+        - name: Copy domain template
+          copy:
+            src: ../files/template-eessi-hpc.org.local
+            dest: /etc/cvmfs/domain.d/eessi-hpc.org.local
+            force: true
+            mode: '0664'
+
+        - name: Substitute template variables with values
+          replace:
+            path: /etc/cvmfs/domain.d/eessi-hpc.org.local
+            regexp: "{{ item.variable }}"
+            replace: "{{ item.value }}"
+          loop:
+            - { variable: "_src_stratum1_host_", value: "{{ src_stratum1_host }}" }
+
+        - name: Update EESSI configuration
+          shell: cvmfs_config probe pilot.eessi-hpc.org
+
+        - name: Probe Stratum 1 servers by geo location to trigger reordering
+          shell: cvmfs_talk -i pilot.eessi-hpc.org host probe geo
+          
+    - name: EESSI environment setup to .bashrc
+      lineinfile:
+        path: ~/.bashrc
+        line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
+        state: present
+
+    - name: Add EESSI environment setup to /etc/profile
+      lineinfile:
+        path: /etc/profile
+        line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
+        state: present
+      become: true
+     # Jupyter set
+    - name: Start Jupyter Notebook
+      shell: |
+        source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
+        module load JupyterNotebook/7.0.2-GCCcore-12.3.0
+        nohup jupyter notebook --no-browser --ip=0.0.0.0 &
+      args:
+        executable: /bin/bash
+
+    - name: Verify Jupyter is running
+      shell: pgrep -f jupyter
+      register: jupyter_running
+      failed_when: jupyter_running.rc != 0
+      changed_when: jupyter_running.rc == 0
