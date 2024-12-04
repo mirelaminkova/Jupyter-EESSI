@@ -68,8 +68,8 @@
 
     - name: Load only Jupyter Notebook module
       shell: |
-        #source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
-        #module purge
+        source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
+        module purge
         #module load JupyterNotebook/7.0.2-GCCcore-12.3.0
         module load JupyterNotebook
         nohup jupyter notebook --no-browser --ip=0.0.0.0 &
