@@ -56,7 +56,8 @@
     - name: EESSI environment setup to .bashrc
       lineinfile:
         path: ~/.bashrc
-        line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
+        #line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
+        line: "source /cvmfs/software.eessi.io/versions/2023.06/init/bash" 
         state: present
 
     - name: Add EESSI environment setup to /etc/profile
