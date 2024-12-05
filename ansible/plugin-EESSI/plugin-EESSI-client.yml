@@ -1,23 +1,39 @@
+---
 - name: Configure node for access to the EESSI stack
-  hosts: localhost
+  hosts:
+    - localhost
   gather_facts: true
-  become: true
+
   tasks:
-    - name: Install prerequisites
-      apt:
-        name:
-          - sudo
-          - wget
-        state: present
+    - name: Ubuntu installation of EESSI client
+      when: ansible_distribution == 'Ubuntu'
+      block:
+        - name: Install prerequisites
+          apt:
+            name:
+              - sudo
+              - wget
+        - name: Download EESSI installation
+          get_url:
+            url: https://raw.githubusercontent.com/EESSI/eessi-demo/9ed1324325cd906987a4cad84da057d55a2dd1e4/scripts/install_cvmfs_eessi_Ubuntu.sh
+            dest: /tmp/install_cvmfs_x86_64_Ubuntu.sh
+            mode: 0755
+        - name: Execute the zsh-installer.sh
+          shell: /tmp/install_cvmfs_x86_64_Ubuntu.sh
 
-    - name: Download EESSI installation script
-      get_url:
-        url: https://raw.githubusercontent.com/EESSI/eessi-demo/23da78bd7cc56332cceb9567bf67be637af91946/scripts/install_cvmfs_eessi.sh
-        dest: /tmp/install_cvmfs_eessi.sh
-        mode: '0755'
-
-    - name: Execute the installation script
-      shell: /tmp/install_cvmfs_eessi.sh
+    - name: CentOS installation of EESSI client
+      when: ansible_distribution == 'CentOS'
+      block:
+        - name: Install prerequisites
+          yum:
+            name: sudo
+        - name: Download EESSI installation
+          get_url:
+            url: https://raw.githubusercontent.com/EESSI/eessi-demo/9ed1324325cd906987a4cad84da057d55a2dd1e4/scripts/install_cvmfs_eessi_RHEL.sh
+            dest: /tmp/install_cvmfs_eessi_RHEL.sh
+            mode: 0755
+        - name: Install and configure EESSI
+          shell: /tmp/install_cvmfs_eessi_RHEL.sh
 
     - name: Verify cvmfs_talk command
       shell: "command -v cvmfs_talk"
@@ -30,55 +46,24 @@
       when: cvmfs_talk_output.rc != 0
 
     - name: Add private Stratum 1 to list of Stratum 1s
-      when: src_stratum1_host is defined
-      block:
-        - name: Copy domain template
-          copy:
-            src: ../files/template-eessi-hpc.org.local
-            dest: /etc/cvmfs/domain.d/eessi-hpc.org.local
-            force: true
-            mode: '0664'
+      copy:
+        src: ../files/template-eessi-hpc.org.local
+        dest: /etc/cvmfs/domain.d/eessi-hpc.org.local
+        force: true
+        mode: u=rw,g=rw,o=r
+    - name: Substitute template variables with values
+      replace:
+        path: /etc/cvmfs/domain.d/eessi-hpc.org.local
+        regexp: "{{ item.variable }}"
+        replace: "{{ item.value }}"
+      with_items:
+        - { variable: "_src_stratum1_host_", value: "{{ src_stratum1_host }}" }
 
-        - name: Substitute template variables with values
-          replace:
-            path: /etc/cvmfs/domain.d/eessi-hpc.org.local
-            regexp: "{{ item.variable }}"
-            replace: "{{ item.value }}"
-          loop:
-            - { variable: "_src_stratum1_host_", value: "{{ src_stratum1_host }}" }
+    - name: Update EESSI configuration
+      shell: cvmfs_config probe pilot.eessi-hpc.org
 
-        - name: Update EESSI configuration
-          shell: cvmfs_config probe pilot.eessi-hpc.org
+    - name: Probe Stratum 1 servers by geo location to trigger reordering
+      shell: cvmfs_talk -i pilot.eessi-hpc.org host probe geo
 
-        - name: Probe Stratum 1 servers by geo location to trigger reordering
-          shell: cvmfs_talk -i pilot.eessi-hpc.org host probe geo
-
-    - name: EESSI environment setup to .bashrc
-      lineinfile:
-        path: ~/.bashrc
-        #line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
-        line: "source /cvmfs/software.eessi.io/versions/2023.06/init/bash" 
-        state: present
-
-    - name: Add EESSI environment setup to /etc/profile
-      lineinfile:
-        path: /etc/profile
-        line: "source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash"
-        state: present
-      become: true
-
-    - name: Load only Jupyter Notebook module
-      shell: |
-        source /cvmfs/software.eessi.io/versions/2023.06/init/lmod/bash
-        module purge
-        module load JupyterNotebook/7.0.2-GCCcore-12.3.0
-        #module load JupyterNotebook
-        nohup jupyter notebook --no-browser --ip=0.0.0.0 &
-      args:
-        executable: /bin/bash
-
-    - name: Verify Jupyter is running
-      shell: pgrep -f jupyter
-      register: jupyter_running
-      failed_when: jupyter_running.rc != 0
-      changed_when: jupyter_running.rc == 0
+    - name: Load JupyterNotebook module
+      shell: module load JupyterNotebook
