@@ -77,17 +77,18 @@
 #        nohup jupyter notebook --no-browser --ip=0.0.0.0 &
 #      args:
 #        executable: /bin/bash
-  - name: Load only Jupyter Notebook module if not already loaded
-    shell: |
-      source /cvmfs/software.eessi.io/versions/2023.06/init/bash
-      if ! module list 2>&1 | grep -q JupyterNotebook; then
-        module list 2>&1 | grep -v JupyterNotebook | xargs -I {} module unload {}
-        module load JupyterNotebook/7.0.2-GCCcore-12.3.0
-        nohup jupyter notebook --no-browser --ip=0.0.0.0 &
-      fi
-    args:
-      executable: /bin/bash
-      
+#####################################################################
+    - name: Load only Jupyter Notebook module if not already loaded
+      shell: |
+        source /cvmfs/software.eessi.io/versions/2023.06/init/bash
+        if ! module list 2>&1 | grep -q JupyterNotebook; then
+          module list 2>&1 | grep -v JupyterNotebook | xargs -I {} module unload {}
+          module load JupyterNotebook/7.0.2-GCCcore-12.3.0
+          nohup jupyter notebook --no-browser --ip=0.0.0.0 &
+        fi
+      args:
+        executable: /bin/bash
+#######################################################################      
 
     - name: Verify Jupyter is running
       shell: pgrep -f jupyter
